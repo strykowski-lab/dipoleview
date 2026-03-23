@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>%%TITLE%%</title>
+<style>
+%%CSS%%
+</style>
+</head>
+<body>
+
+<!-- ====== MAP AREA ====== -->
+<div id="map-wrap">
+  <svg id="map-svg" viewBox="%%VIEWBOX%%" xmlns="http://www.w3.org/2000/svg">
+    <rect x="-100" y="-100" width="200" height="200" fill="#0d0d0d"/>
+    <g id="pixels">
+    %%POLYGONS%%
+    </g>
+    <g id="graticule" pointer-events="none">
+    %%GRATICULE%%
+    </g>
+    %%ELLIPSE%%
+  </svg>
+
+  <div id="ui-title">%%TITLE%%</div>
+
+  <div id="top-right">
+    <div id="undo-redo">
+      <button class="ur-btn" id="undo-btn" disabled>&#8617; Undo</button>
+      <button class="ur-btn" id="redo-btn" disabled>&#8618; Redo</button>
+    </div>
+    <div id="hover-info">&mdash;</div>
+    <div id="sel-info"></div>
+  </div>
+
+  <div id="zoom-bar">
+    <button class="zoom-btn" id="zoom-in"  title="Zoom in">+</button>
+    <button class="zoom-btn" id="zoom-out" title="Zoom out">&#8722;</button>
+    <button class="zoom-btn" id="zoom-reset" title="Reset zoom">&#8857;</button>
+  </div>
+</div>
+
+<!-- ====== SIDEBAR ====== -->
+<div id="sidebar">
+
+  <!-- Display -->
+  <div class="sec-title">Display</div>
+  <button class="sb-btn-big" id="smooth-btn">SMOOTH: OFF</button>
+  <button class="sb-btn" id="refresh-btn">Refresh smooth</button>
+
+  <!-- Slice masks -->
+  <div class="sec-title">Slice masks</div>
+  <textarea id="slice-input" placeholder="e.g. |b| < 10&#10;60 < ra < 80&#10;dec < -40"></textarea>
+  <button class="sb-btn" id="apply-slice-btn">Apply</button>
+  <div id="slice-list"></div>
+
+  <!-- Pixel masks -->
+  <div class="sec-title">Masked pixels</div>
+  <div id="pixel-table"></div>
+
+  <!-- Session -->
+  <div class="sec-title">Session</div>
+  <button class="sb-btn-save" id="save-btn">Save session</button>
+  <button class="sb-btn-load" id="load-btn">Load session</button>
+  <div id="save-status"></div>
+
+</div>
+
+<script>
+%%JS%%
+</script>
+</body>
+</html>

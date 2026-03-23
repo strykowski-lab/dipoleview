@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "dipoleview"
+version = "0.1.0"
+description = "Interactive HEALPix sky viewer and mask editor"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "healpy",
+    "matplotlib",
+    "scipy",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
