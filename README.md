@@ -17,9 +17,8 @@ pip install -e .
 To run the examples you will also need dipoletools:
 
 ```bash
+git clone https://github.com/strykowski-lab/dipoletools.git
 pip install -e /path/to/dipoletools
-# or
-pip install -e ".[examples]"   # once dipoletools is on PyPI
 ```
 
 ---
