@@ -158,6 +158,22 @@ A scrollable table of individually click-masked pixels with coordinates.  Each e
 
 ---
 
+## Citation
+
+If you use dipoleview in your research, please cite:
+
+```bibtex
+@software{dipoleview,
+  author       = {Land-Strykowski, Mali},
+  title        = {dipoleview: Interactive HEALPix sky viewer and mask editor},
+  url          = {https://github.com/strykowski-lab/dipoleview},
+  version      = {0.1.0},
+  year         = {2026},
+}
+```
+
+---
+
 ## License
 
 MIT
