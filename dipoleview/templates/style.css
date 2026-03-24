@@ -25,112 +25,160 @@ svg { width: 100%; height: 100%; cursor: crosshair; display: block; }
 /* ---- Map overlays ---- */
 #ui-title {
   position: absolute; top: 12px; left: 14px;
-  color: #999; font-size: 12px; pointer-events: none;
+  color: #999; font-size: 14px; pointer-events: none;
 }
 #top-right {
   position: absolute; top: 12px; right: 14px;
   text-align: right; display: flex; flex-direction: column;
-  align-items: flex-end; gap: 6px;
+  align-items: flex-end; gap: 8px;
 }
-#undo-redo { display: flex; gap: 6px; }
+#undo-redo { display: flex; gap: 8px; }
 .ur-btn {
   background: #1c1c2a; border: 1px solid #444; color: #bbb;
-  font-size: 11px; padding: 3px 9px; cursor: pointer; border-radius: 3px;
+  font-size: 13px; padding: 5px 12px; cursor: pointer; border-radius: 3px;
 }
 .ur-btn:hover { background: #2a2a3a; color: #fff; }
 .ur-btn:disabled { opacity: 0.35; cursor: default; }
-#hover-info { color: #eee; font-size: 13px; line-height: 1.8; }
-#sel-info   { color: #ff7777; font-size: 13px; line-height: 1.8; min-height: 1.4em; }
+#hover-info { color: #eee; font-size: 15px; line-height: 1.8; }
+#sel-info   { color: #ff7777; font-size: 15px; line-height: 1.8; min-height: 1.4em; }
+#copy-coord-btn {
+  background: #1c1c2e; border: 1px solid #553333; color: #ff9999;
+  font-size: 12px; padding: 3px 10px; cursor: pointer; border-radius: 3px;
+  align-self: flex-end; font-family: "Courier New", monospace;
+}
+#copy-coord-btn:hover { background: #2a1a1a; color: #ffbbbb; }
 
 /* ---- Zoom bar ---- */
 #zoom-bar {
   position: absolute; bottom: 14px; left: 14px;
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 8px;
 }
 .zoom-btn {
   background: #1c1c2a; border: 1px solid #444; color: #ccc;
-  width: 28px; height: 28px; font-size: 16px; cursor: pointer;
+  width: 32px; height: 32px; font-size: 18px; cursor: pointer;
   border-radius: 4px; line-height: 1;
 }
 .zoom-btn:hover { background: #2a2a3a; }
 
+.zoom-pct-input {
+  background: #0d0d14; border: 1px solid #333; color: #ccc;
+  font-size: 14px; padding: 4px 8px; border-radius: 3px;
+  width: 70px; text-align: center;
+  font-family: "Courier New", monospace;
+}
+.zoom-pct-input:focus { outline: none; border-color: #555; }
+
+/* ---- Source count (above colorbar) ---- */
+#source-count {
+  position: absolute; bottom: 56px; right: 14px;
+  color: #aaa; font-size: 13px; text-align: right;
+  pointer-events: none;
+}
+
+/* ---- Colorbar ---- */
+#colorbar {
+  position: absolute; bottom: 14px; right: 14px;
+  display: flex; flex-direction: column; align-items: stretch;
+  width: 220px; pointer-events: none;
+}
+#cbar-canvas {
+  width: 100%; height: 12px; border-radius: 2px;
+  image-rendering: pixelated;
+}
+#cbar-labels {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: #aaa; margin-top: 3px;
+}
+
 /* ---- Sidebar ---- */
 #sidebar {
-  width: 250px; min-width: 250px;
+  width: 300px; min-width: 300px;
   background: #111118; border-left: 1px solid #222;
   display: flex; flex-direction: column;
-  overflow-y: auto; padding: 10px 10px 20px;
-  gap: 6px;
+  overflow-y: auto; padding: 14px 14px 24px;
+  gap: 8px;
 }
 .sec-title {
-  color: #888; font-size: 10px; text-transform: uppercase;
-  letter-spacing: 0.08em; margin-top: 10px; margin-bottom: 4px;
-  border-bottom: 1px solid #222; padding-bottom: 3px;
+  color: #888; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.08em; margin-top: 14px; margin-bottom: 6px;
+  border-bottom: 1px solid #222; padding-bottom: 4px;
 }
 .sb-btn {
   background: #1c1c2e; border: 1px solid #444; color: #ccc;
-  font-size: 12px; padding: 5px 8px; cursor: pointer;
+  font-size: 14px; padding: 7px 10px; cursor: pointer;
   border-radius: 4px; width: 100%; text-align: left;
 }
-.sb-btn:hover { background: #26263a; color: #fff; }
-.sb-btn:disabled { opacity: 0.4; cursor: default; }
+.sb-btn:hover:not(:disabled) { background: #26263a; color: #fff; }
+.sb-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
 .sb-btn.active { border-color: #8888ff; color: #aaccff; }
+.sb-btn.flux-disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
 
 /* Big smooth toggle */
 .sb-btn-big {
   background: #1c1c2e; border: 2px solid #444; color: #ccc;
-  font-size: 14px; padding: 10px 8px; cursor: pointer;
+  font-size: 16px; padding: 12px 10px; cursor: pointer;
   border-radius: 6px; width: 100%; text-align: center;
   font-weight: bold;
 }
 .sb-btn-big:hover { background: #26263a; color: #fff; }
 .sb-btn-big.active { border-color: #8888ff; color: #aaccff; background: #1a1a3a; }
 
-.input-row {
-  display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+/* Small inline button (Go, next to search input) */
+.sb-btn-sm {
+  background: #1c1c2e; border: 1px solid #444; color: #ccc;
+  font-size: 13px; padding: 5px 10px; cursor: pointer;
+  border-radius: 4px; white-space: nowrap; flex-shrink: 0;
 }
-.input-row label { color: #888; font-size: 11px; width: 28px; flex-shrink: 0; }
+.sb-btn-sm:hover { background: #26263a; color: #fff; }
+
+.input-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.input-row label { color: #888; font-size: 13px; width: 32px; flex-shrink: 0; }
 .input-row input {
   flex: 1; background: #0d0d14; border: 1px solid #333; color: #ddd;
-  font-size: 12px; padding: 3px 6px; border-radius: 3px; width: 0;
+  font-size: 14px; padding: 5px 8px; border-radius: 3px; width: 0;
+}
+.input-row input:disabled {
+  opacity: 0.35; cursor: default; color: #666;
 }
 
 #slice-input {
   width: 100%; background: #0d0d14; border: 1px solid #333; color: #ddd;
-  font-size: 12px; padding: 5px; border-radius: 3px; resize: vertical;
-  height: 56px; font-family: "Courier New", monospace;
+  font-size: 14px; padding: 7px; border-radius: 3px; resize: vertical;
+  height: 64px; font-family: "Courier New", monospace;
 }
 #slice-input:focus { outline: none; border-color: #555; }
 
 .slice-row, .mask-row {
   display: flex; align-items: center; justify-content: space-between;
-  background: #17172a; border-radius: 3px; padding: 3px 6px;
-  margin-bottom: 3px; font-size: 11px; color: #bbb;
+  background: #17172a; border-radius: 3px; padding: 5px 8px;
+  margin-bottom: 4px; font-size: 13px; color: #bbb;
   word-break: break-all;
 }
 .remove-btn {
   background: none; border: none; color: #ff6666; cursor: pointer;
-  font-size: 14px; padding: 0 2px; line-height: 1; flex-shrink: 0;
+  font-size: 16px; padding: 0 3px; line-height: 1; flex-shrink: 0;
 }
 .remove-btn:hover { color: #ff3333; }
 
-#pixel-table { max-height: 200px; overflow-y: auto; }
+#pixel-table { max-height: 240px; overflow-y: auto; }
 
 /* Save/Load section */
 .sb-btn-save {
   background: #1c2e1c; border: 1px solid #4a4; color: #aca;
-  font-size: 12px; padding: 6px 8px; cursor: pointer;
+  font-size: 14px; padding: 8px 10px; cursor: pointer;
   border-radius: 4px; width: 100%; text-align: center;
 }
 .sb-btn-save:hover { background: #263a26; color: #cfc; }
 
 .sb-btn-load {
   background: #1c1c2e; border: 1px solid #448; color: #aac;
-  font-size: 12px; padding: 6px 8px; cursor: pointer;
+  font-size: 14px; padding: 8px 10px; cursor: pointer;
   border-radius: 4px; width: 100%; text-align: center;
 }
 .sb-btn-load:hover { background: #26263a; color: #ccf; }
 
 #save-status {
-  color: #6a6; font-size: 10px; min-height: 1.2em; padding: 2px 0;
+  color: #6a6; font-size: 12px; min-height: 1.4em; padding: 3px 0;
 }

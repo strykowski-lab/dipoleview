@@ -5,7 +5,7 @@ import healpy as hp
 from scipy.spatial import cKDTree
 
 
-def smooth_map(count_map, mask=None, steradians=1.0):
+def smooth_map(count_map, mask=None, steradians=1):
     """Compute a smoothed count map using a running average.
 
     Excludes masked pixels from the average so the user can see
@@ -22,11 +22,12 @@ def smooth_map(count_map, mask=None, steradians=1.0):
 
     Returns
     -------
-    smooth : ndarray
+    numpy.ndarray
         Full-sky array with smoothed values for unmasked pixels,
         NaN for masked pixels.
     """
-    counts = np.asarray(count_map, dtype=float).copy()
+
+    counts = count_map
     nside = hp.npix2nside(len(counts))
     npix = len(counts)
     pos = np.array(hp.pix2vec(nside, np.arange(npix))).T
@@ -35,21 +36,22 @@ def smooth_map(count_map, mask=None, steradians=1.0):
     chord = 2 * np.sin(radius / 2)
 
     if mask is not None:
-        unmasked = np.where(mask)[0]
+        unmasked_indices = np.where(mask)[0]
     else:
-        unmasked = np.arange(npix)
+        unmasked_indices = np.arange(npix)
 
     is_unmasked = np.zeros(npix, dtype=bool)
-    is_unmasked[unmasked] = True
+    is_unmasked[unmasked_indices] = True
 
     tree = cKDTree(pos)
-    neighbors_list = tree.query_ball_point(pos[unmasked], chord, workers=-1)
+    neighbors_list = tree.query_ball_point(pos[unmasked_indices], chord,
+                                            workers=-1)
 
-    result = np.full(npix, np.nan)
+    average_counts = np.zeros(len(unmasked_indices))
     for j, nbrs in enumerate(neighbors_list):
         nbrs_arr = np.asarray(nbrs, dtype=int)
         valid = nbrs_arr[is_unmasked[nbrs_arr]]
         if len(valid) > 0:
-            result[unmasked[j]] = counts[valid].mean()
+            average_counts[j] = counts[valid].mean()
 
-    return result
+    return average_counts

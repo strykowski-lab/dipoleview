@@ -31,21 +31,56 @@
     </div>
     <div id="hover-info">&mdash;</div>
     <div id="sel-info"></div>
+    <button id="copy-coord-btn" style="display:none">Copy</button>
   </div>
 
   <div id="zoom-bar">
     <button class="zoom-btn" id="zoom-in"  title="Zoom in">+</button>
     <button class="zoom-btn" id="zoom-out" title="Zoom out">&#8722;</button>
     <button class="zoom-btn" id="zoom-reset" title="Reset zoom">&#8857;</button>
+    <input id="zoom-pct" class="zoom-pct-input" value="100%" title="Type zoom % and press Enter">
+  </div>
+
+  <div id="source-count"></div>
+
+  <div id="colorbar">
+    <canvas id="cbar-canvas" width="256" height="1"></canvas>
+    <div id="cbar-labels">
+      <span id="cbar-min">%%VMIN%%</span>
+      <span id="cbar-max">%%VMAX%%</span>
+    </div>
   </div>
 </div>
 
 <!-- ====== SIDEBAR ====== -->
 <div id="sidebar">
 
+  <!-- Search -->
+  <div class="sec-title">Go to</div>
+  <div class="input-row">
+    <input id="coord-search-inp" placeholder="lon lat">
+    <button class="sb-btn-sm" id="coord-search-btn">Go</button>
+  </div>
+
+  <!-- Flux cut -->
+  <div class="sec-title">Flux cut</div>
+  <div class="input-row">
+    <label>min</label>
+    <input id="flux-min-inp" type="number" step="any" placeholder="None">
+  </div>
+  <div class="input-row">
+    <label>max</label>
+    <input id="flux-max-inp" type="number" step="any" placeholder="None">
+  </div>
+  <button class="sb-btn" id="redraw-btn">Apply cut</button>
+
   <!-- Display -->
   <div class="sec-title">Display</div>
   <button class="sb-btn-big" id="smooth-btn">SMOOTH: OFF</button>
+  <div class="input-row">
+    <label>sr</label>
+    <input id="smooth-sr-inp" type="number" step="0.1" value="1.0" min="0.1" title="Smoothing scale (steradians)">
+  </div>
   <button class="sb-btn" id="refresh-btn">Refresh smooth</button>
 
   <!-- Slice masks -->
@@ -53,6 +88,19 @@
   <textarea id="slice-input" placeholder="e.g. |b| < 10&#10;60 < ra < 80&#10;dec < -40"></textarea>
   <button class="sb-btn" id="apply-slice-btn">Apply</button>
   <div id="slice-list"></div>
+
+  <!-- Disc masks -->
+  <div class="sec-title">Disc masks</div>
+  <div class="input-row">
+    <label id="disc-center-label">lon lat</label>
+    <input id="disc-center-inp" placeholder="e.g. 120 &#8722;15">
+  </div>
+  <div class="input-row">
+    <label>r °</label>
+    <input id="disc-radius-inp" type="number" step="0.5" min="0" placeholder="deg">
+  </div>
+  <button class="sb-btn" id="apply-disc-btn">Apply disc</button>
+  <div id="disc-list"></div>
 
   <!-- Pixel masks -->
   <div class="sec-title">Masked pixels</div>

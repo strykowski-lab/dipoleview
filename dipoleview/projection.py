@@ -51,19 +51,18 @@ def pixel_boundaries(nside, npix, step=2):
     phi_corn = np.degrees(np.arctan2(cy, cx)) % 360.0
     lat_corn = np.degrees(np.arcsin(np.clip(cz, -1.0, 1.0)))
 
-    # Detect wrapping: if any pair of adjacent corners spans > 180 degrees
-    # in longitude, the pixel wraps around the 0/360 boundary
-    phi_diff = np.abs(np.diff(phi_corn, axis=1, append=phi_corn[:, :1]))
-    wrap = np.any(phi_diff > 180.0, axis=1)
-
+    # Project all corners. hp.boundaries returns vertices in order around
+    # the pixel boundary, so no re-sorting is needed — sorting by angle
+    # from centroid causes self-intersecting polygons near the poles.
     mx, my = mollweide(phi_corn, lat_corn)  # (npix, n_verts)
 
-    # Sort corners by angle from centroid to avoid self-intersecting quads
-    cent_x = mx.mean(axis=1, keepdims=True)
-    cent_y = my.mean(axis=1, keepdims=True)
-    order = np.argsort(np.arctan2(my - cent_y, mx - cent_x), axis=1)
-    mx = np.take_along_axis(mx, order, axis=1)
-    my = np.take_along_axis(my, order, axis=1)
+    # Detect wrapping pixels by checking the projected x-span.
+    # Pixels that straddle the 0/360 OR the 180° seam will have corners
+    # projected to opposite sides of the map, giving a huge x-span.
+    # A normal pixel's x-span is at most a few times the typical pixel size.
+    typical_size = 4.0 * np.sqrt(2.0) / np.sqrt(npix)  # rough pixel width
+    x_span = mx.max(axis=1) - mx.min(axis=1)
+    wrap = x_span > typical_size * 5.0
 
     return mx, my, wrap
 
