@@ -36,6 +36,10 @@ let currentFill    = PIX_FILL.slice();
 let showSmooth     = false;
 let smoothFill     = null;
 let smoothVals     = null;  // raw averaged values from last computeSmooth()
+let rawVmin        = ORIG_VMIN;
+let rawVmax        = ORIG_VMAX;
+let smoothVmin     = null;
+let smoothVmax     = null;
 let sliceMasks     = [];
 let discMasks      = [];
 let pixelMasks     = {};
@@ -101,7 +105,35 @@ function updateSourceCount() {
   if (el) el.textContent = Math.round(total).toLocaleString() + ' sources';
 }
 
+function hex2(n) { return n.toString(16).padStart(2, '0'); }
+
+function recomputeRawFill() {
+  // Re-stretch currentFill across the visible (non-masked, non-NaN) range
+  // so the full colormap is always used.
+  const masked = getMaskedSet();
+  let vmin = Infinity, vmax = -Infinity;
+  for (let i = 0; i < NPIX; i++) {
+    if (masked.has(i)) continue;
+    const v = MAP_VALUES[i];
+    if (!isFinite(v)) continue;
+    if (v < vmin) vmin = v;
+    if (v > vmax) vmax = v;
+  }
+  if (!isFinite(vmin)) { vmin = ORIG_VMIN; vmax = ORIG_VMAX; }
+  const rng = vmax > vmin ? vmax - vmin : 1;
+  for (let i = 0; i < NPIX; i++) {
+    const v = MAP_VALUES[i];
+    if (!isFinite(v)) { currentFill[i] = NAN_COLOR; continue; }
+    const t = Math.min(255, Math.max(0, Math.round(255 * (v - vmin) / rng)));
+    const [r, g, b] = LUT[t];
+    currentFill[i] = '#' + hex2(r) + hex2(g) + hex2(b);
+  }
+  rawVmin = vmin;
+  rawVmax = vmax;
+}
+
 function updateAllPolygons() {
+  recomputeRawFill();
   const masked = getMaskedSet();
   for (let i = 0; i < NPIX; i++) {
     const el = polyElems[i];
@@ -136,17 +168,16 @@ function initColorbar() {
 }
 
 function updateColorbar() {
-  // Compute min/max of visible (non-masked, non-NaN-colored) pixels
-  const masked = getMaskedSet();
-  let vmin = Infinity, vmax = -Infinity;
-  for (let i = 0; i < NPIX; i++) {
-    if (masked.has(i)) continue;
-    const c = showSmooth && smoothFill ? smoothFill[i] : currentFill[i];
-    if (c === NAN_COLOR || c === MASK_FILL) continue;
-    const v = MAP_VALUES[i];
-    if (!isFinite(v)) continue;
-    if (v < vmin) vmin = v;
-    if (v > vmax) vmax = v;
+  // Show the range the pixel colormap is currently stretched across.
+  // When smoothing is on, use the smoothed-map range; otherwise the raw range
+  // that recomputeRawFill() last computed from the visible pixels.
+  let vmin, vmax;
+  if (showSmooth && smoothVmin !== null && smoothVmax !== null) {
+    vmin = smoothVmin;
+    vmax = smoothVmax;
+  } else {
+    vmin = rawVmin;
+    vmax = rawVmax;
   }
   if (!isFinite(vmin)) { vmin = ORIG_VMIN; vmax = ORIG_VMAX; }
   cbarMinEl.textContent = vmin.toPrecision(4);
@@ -251,22 +282,13 @@ document.addEventListener('keydown', e => {
     if (masked.has(i) && pixelMasks[i]) {
       saveSnapshot();
       delete pixelMasks[i];
-      const c = effectiveColor(i, getMaskedSet());
-      if (polyElems[i]) {
-        polyElems[i].setAttribute('fill', c);
-        polyElems[i].setAttribute('stroke', c);
-      }
+      updateAllPolygons();
       updateMaskTable();
-      updateSourceCount();
     } else if (!masked.has(i)) {
       saveSnapshot();
       pixelMasks[i] = true;
-      if (polyElems[i]) {
-        polyElems[i].setAttribute('fill', MASK_FILL);
-        polyElems[i].setAttribute('stroke', MASK_FILL);
-      }
+      updateAllPolygons();
       updateMaskTable();
-      updateSourceCount();
     }
     return;
   }
@@ -389,14 +411,15 @@ function computeSmooth() {
     }
   }
   const rng = vmax > vmin ? vmax - vmin : 1;
-  function hx(n) { return n.toString(16).padStart(2, '0'); }
   for (let i = 0; i < NPIX; i++) {
     if (!isUnmasked[i]) { smoothFill[i] = MASK_FILL; continue; }
     if (!isFinite(averageVals[i])) { smoothFill[i] = NAN_COLOR; continue; }
     const t = Math.min(255, Math.max(0, Math.round(255 * (averageVals[i] - vmin) / rng)));
     const [r, g, b] = LUT[t];
-    smoothFill[i] = '#' + hx(r) + hx(g) + hx(b);
+    smoothFill[i] = '#' + hex2(r) + hex2(g) + hex2(b);
   }
+  if (isFinite(vmin)) { smoothVmin = vmin; smoothVmax = vmax; }
+  else { smoothVmin = null; smoothVmax = null; }
 }
 
 // Test: compare JS smooth results against the Python smooth_map endpoint.
@@ -473,27 +496,18 @@ pixLayer.addEventListener('click', e => {
     if (pixelMasks[i]) {
       saveSnapshot();
       delete pixelMasks[i];
-      const c = effectiveColor(i, getMaskedSet());
-      if (polyElems[i]) {
-        polyElems[i].setAttribute('fill', c);
-        polyElems[i].setAttribute('stroke', c);
-      }
+      updateAllPolygons();
       updateMaskTable();
-      updateSourceCount();
       if (selectedIdx === i) { selectedIdx = -1; renderSelInfo(); }
     }
   } else if (selectedIdx === i) {
     saveSnapshot();
     if (polyElems[i]) polyElems[i].classList.remove('selected');
     pixelMasks[i] = true;
-    if (polyElems[i]) {
-      polyElems[i].setAttribute('fill', MASK_FILL);
-      polyElems[i].setAttribute('stroke', MASK_FILL);
-    }
     selectedIdx = -1;
+    updateAllPolygons();
     renderSelInfo();
     updateMaskTable();
-    updateSourceCount();
   } else {
     if (selectedIdx !== -1 && polyElems[selectedIdx])
       polyElems[selectedIdx].classList.remove('selected');
@@ -775,10 +789,8 @@ function updateMaskTable() {
     btn.className = 'remove-btn';
     btn.onclick = () => {
       saveSnapshot(); delete pixelMasks[i];
-      const c = effectiveColor(i, getMaskedSet());
-      if (polyElems[i]) { polyElems[i].setAttribute('fill',c); polyElems[i].setAttribute('stroke',c); }
+      updateAllPolygons();
       updateMaskTable();
-      updateSourceCount();
     };
     row.appendChild(span); row.appendChild(btn); div.appendChild(row);
   });
