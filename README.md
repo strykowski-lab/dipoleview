@@ -160,7 +160,11 @@ A scrollable table of individually click-masked pixels with coordinates.  Each e
 
 ## Citation
 
-If you use dipoleview in your research, please cite:
+If you use `dipoleview` in your research, please include a footnote to the repository:
+
+> [https://github.com/strykowski-lab/dipoleview](https://github.com/strykowski-lab/dipoleview)
+
+BibTeX:
 
 ```bibtex
 @software{dipoleview,
