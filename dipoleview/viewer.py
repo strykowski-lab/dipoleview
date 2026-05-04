@@ -292,7 +292,7 @@ def _start_server(html, save_dir, npix, label='countmap',
 
 
 def view(source, coord='G', cmap='plasma', title='',
-         session=None, save_dir=None, outfile=None, browser=True):
+         session=None, mask=None, save_dir=None, outfile=None, browser=True):
     """Open an interactive HEALPix map viewer + mask editor in the browser.
 
     Parameters
@@ -308,6 +308,13 @@ def view(source, coord='G', cmap='plasma', title='',
         Label shown top-left.
     session : str, optional
         Path to a saved _metadata.json to restore on open.
+    mask : array_like or str, optional
+        A boolean HEALPix pixel mask (same length as the map, ring ordering)
+        or a path to a .npy file containing one. The convention matches the
+        viewer's saved masks: ``True`` = unmasked (keep), ``False`` = masked.
+        Loaded into the session as individual pixel masks. If a `session` is
+        also given, the two are merged (union of masked pixels) while the
+        session's slice/disc-mask metadata is preserved.
     save_dir : str, optional
         Directory for saved files. Defaults to cwd.
     outfile : str, optional
@@ -463,6 +470,37 @@ def view(source, coord='G', cmap='plasma', title='',
 }})();
 '''
     js_str = js_str + '\n' + session_js
+
+    # Array mask: load .npy or accept ndarray, then merge into pixelMasks.
+    mask_js = ''
+    if mask is not None:
+        if isinstance(mask, str):
+            mask_arr = np.load(mask)
+        else:
+            mask_arr = np.asarray(mask)
+        if mask_arr.shape != (npix,):
+            raise ValueError(
+                f'mask shape {mask_arr.shape} does not match map npix={npix}'
+            )
+        masked_idx = np.where(~mask_arr.astype(bool))[0]
+        idx_json = json.dumps([int(i) for i in masked_idx])
+        mask_js = f'''
+(function() {{
+  try {{
+    const extra = {idx_json};
+    for (const i of extra) pixelMasks[i] = true;
+    if (extra.length) {{
+      updateAllPolygons();
+      updateMaskTable();
+      const note = 'Loaded array mask (' + extra.length + ' px)';
+      saveStatus.textContent = saveStatus.textContent
+        ? saveStatus.textContent + ' + ' + note
+        : note;
+    }}
+  }} catch(e) {{ console.warn('Array mask load failed:', e); }}
+}})();
+'''
+    js_str = js_str + '\n' + mask_js
 
     # Port placeholder — filled after server starts
     # We use a two-pass approach: build HTML with placeholder, start server,
