@@ -353,15 +353,19 @@ def view(source, coord='G', cmap='plasma', title='',
 
     # For plain count maps: support coord=[in, out] rotation, and treat
     # NaN / UNSEEN pixels as initially masked.
+    # Rotation follows healpy's projview: we do NOT rotate the map values
+    # (which would interpolate and destroy integer counts). Instead we
+    # rotate each pixel's centre and boundary into the output frame and
+    # draw the original value there.
     initial_masked = []
+    coord_rot = None
     if mapmaker is None:
         if isinstance(coord, (list, tuple)):
             if len(coord) != 2:
                 raise ValueError("coord list must have exactly two elements, e.g. ['C', 'G']")
             coord_in, coord_out = coord
             if coord_in != coord_out:
-                rot = hp.Rotator(coord=[coord_in, coord_out])
-                m = rot.rotate_map_pixel(m)
+                coord_rot = hp.Rotator(coord=[coord_in, coord_out])
             coord = coord_out
 
         bad = ~np.isfinite(m) | np.isclose(m, hp.UNSEEN)
@@ -397,11 +401,11 @@ def view(source, coord='G', cmap='plasma', title='',
                            for r, g, b_, _ in lut_vals])
 
     # Pixel centres
-    lon_c, lat_c = pixel_centres(nside, npix)
+    lon_c, lat_c = pixel_centres(nside, npix, rot=coord_rot)
 
     # Pixel boundaries
     print(f'Computing pixel boundaries (nside={nside}, npix={npix})...')
-    mx, my, wrap = pixel_boundaries(nside, npix, step=2)
+    mx, my, wrap = pixel_boundaries(nside, npix, step=2, rot=coord_rot)
     n_verts = mx.shape[1]
 
     # SVG polygons

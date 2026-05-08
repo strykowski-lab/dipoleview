@@ -24,7 +24,7 @@ def mollweide(l_deg, b_deg):
             np.sqrt(2.0) * np.sin(theta))
 
 
-def pixel_boundaries(nside, npix, step=2):
+def pixel_boundaries(nside, npix, step=2, rot=None):
     """Compute Mollweide-projected pixel boundary polygons.
 
     Parameters
@@ -37,6 +37,10 @@ def pixel_boundaries(nside, npix, step=2):
         Number of intermediate points per edge (higher = smoother curves).
         Default 2 gives 8 vertices per pixel which handles the curved
         HEALPix pixel edges much better than 4 corners.
+    rot : healpy.Rotator, optional
+        If given, rotate each boundary vertex from the input coord system
+        into the output system before Mollweide projection. Pixel values
+        are not touched, so integer counts are preserved.
 
     Returns
     -------
@@ -48,6 +52,12 @@ def pixel_boundaries(nside, npix, step=2):
     n_verts = 4 * step
     raw = hp.boundaries(nside, np.arange(npix), step=step)  # (npix, 3, 4*step)
     cx, cy, cz = raw[:, 0, :], raw[:, 1, :], raw[:, 2, :]
+    if rot is not None:
+        vec = np.stack([cx.ravel(), cy.ravel(), cz.ravel()], axis=0)
+        vec = rot(vec)
+        cx = vec[0].reshape(npix, n_verts)
+        cy = vec[1].reshape(npix, n_verts)
+        cz = vec[2].reshape(npix, n_verts)
     phi_corn = np.degrees(np.arctan2(cy, cx)) % 360.0
     lat_corn = np.degrees(np.arcsin(np.clip(cz, -1.0, 1.0)))
 
@@ -67,10 +77,16 @@ def pixel_boundaries(nside, npix, step=2):
     return mx, my, wrap
 
 
-def pixel_centres(nside, npix):
-    """Return (lon, lat) in degrees for all pixel centres."""
+def pixel_centres(nside, npix, rot=None):
+    """Return (lon, lat) in degrees for all pixel centres.
+
+    If ``rot`` is given, the centres are rotated from the input coord
+    system to the output one without touching the underlying pixel values.
+    """
     theta_c, phi_c = hp.pix2ang(nside, np.arange(npix))
-    lon_c = np.degrees(phi_c)
+    if rot is not None:
+        theta_c, phi_c = rot(theta_c, phi_c)
+    lon_c = np.degrees(phi_c) % 360.0
     lat_c = 90.0 - np.degrees(theta_c)
     return lon_c, lat_c
 
