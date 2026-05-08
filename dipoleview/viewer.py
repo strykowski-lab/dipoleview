@@ -292,7 +292,8 @@ def _start_server(html, save_dir, npix, label='countmap',
 
 
 def view(source, coord='G', cmap='plasma', title='',
-         session=None, save_dir=None, outfile=None, browser=True):
+         session=None, decimals=0,
+         save_dir=None, outfile=None, browser=True):
     """Open an interactive HEALPix map viewer + mask editor in the browser.
 
     Parameters
@@ -308,6 +309,9 @@ def view(source, coord='G', cmap='plasma', title='',
         Label shown top-left.
     session : str, optional
         Path to a saved _metadata.json to restore on open.
+    decimals : int, optional
+        Number of decimal places shown in the ``val: X`` hover/select
+        readout. Default 0 (integer display).
     save_dir : str, optional
         Directory for saved files. Defaults to cwd.
     outfile : str, optional
@@ -494,6 +498,7 @@ def view(source, coord='G', cmap='plasma', title='',
         ('%%VMIN%%', f'{vmin:.6g}'),
         ('%%VMAX%%', f'{vmax:.6g}'),
         ('%%FLUX_ENABLED%%', 'true' if mapmaker is not None else 'false'),
+        ('%%VAL_DECIMALS%%', str(int(decimals))),
     ]:
         html = html.replace(key, val)
 
