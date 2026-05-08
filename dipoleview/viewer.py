@@ -291,7 +291,7 @@ def _start_server(html, save_dir, npix, label='countmap',
     return port
 
 
-def view(source, coord='G', cmap='plasma', title='', session=None, mask=None, ave_dir=None, outfile=None, browser=True, decimals=0):
+def view(source, coord='G', cmap='plasma', title='', session=None, mask=None, save_dir=None, outfile=None, browser=True, decimals=0):
     """Open an interactive HEALPix map viewer + mask editor in the browser.
 
     Parameters
