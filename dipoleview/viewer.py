@@ -291,8 +291,7 @@ def _start_server(html, save_dir, npix, label='countmap',
     return port
 
 
-def view(source, coord='G', cmap='plasma', title='',
-         session=None, mask=None, save_dir=None, outfile=None, browser=True):
+def view(source, coord='G', cmap='plasma', title='', session=None, mask=None, ave_dir=None, outfile=None, browser=True, decimals=0):
     """Open an interactive HEALPix map viewer + mask editor in the browser.
 
     Parameters
@@ -300,8 +299,13 @@ def view(source, coord='G', cmap='plasma', title='',
     source : array_like or MapMaker
         A HEALPix count map (ring ordering), or a MapMaker instance.
         If a MapMaker is passed, flux cuts are enabled in the UI.
-    coord : str, optional
+        For a plain count map, NaN and ``hp.UNSEEN`` pixels are treated
+        as initially masked.
+    coord : str or list of str, optional
         Coordinate system: 'G' (galactic), 'C' (equatorial), 'E' (ecliptic).
+        For a plain count map, a two-element list like ``['C', 'G']``
+        rotates the map from the first frame to the second (matching
+        healpy's ``mollview(coord=[...])`` convention).
     cmap : str, optional
         Matplotlib colormap name. Default 'plasma'.
     title : str, optional
@@ -321,6 +325,9 @@ def view(source, coord='G', cmap='plasma', title='',
         HTML output path. Defaults to a temp file.
     browser : bool, optional
         Open in the system browser. Default True.
+    decimals : int, optional
+        Number of decimal places shown in the ``val: X`` hover/select
+        readout. Default 0 (integer display).
 
     Returns
     -------
@@ -348,6 +355,28 @@ def view(source, coord='G', cmap='plasma', title='',
     m = healpix_map
     nside = hp.npix2nside(len(m))
     npix = len(m)
+
+    # For plain count maps: support coord=[in, out] rotation, and treat
+    # NaN / UNSEEN pixels as initially masked.
+    # Rotation follows healpy's projview: we do NOT rotate the map values
+    # (which would interpolate and destroy integer counts). Instead we
+    # rotate each pixel's centre and boundary into the output frame and
+    # draw the original value there.
+    initial_masked = []
+    coord_rot = None
+    if mapmaker is None:
+        if isinstance(coord, (list, tuple)):
+            if len(coord) != 2:
+                raise ValueError("coord list must have exactly two elements, e.g. ['C', 'G']")
+            coord_in, coord_out = coord
+            if coord_in != coord_out:
+                coord_rot = hp.Rotator(coord=[coord_in, coord_out])
+            coord = coord_out
+
+        bad = ~np.isfinite(m) | np.isclose(m, hp.UNSEEN)
+        if bad.any():
+            m = np.where(bad, np.nan, m)
+            initial_masked = np.flatnonzero(bad).tolist()
 
     if save_dir is None:
         save_dir = os.getcwd()
@@ -377,11 +406,11 @@ def view(source, coord='G', cmap='plasma', title='',
                            for r, g, b_, _ in lut_vals])
 
     # Pixel centres
-    lon_c, lat_c = pixel_centres(nside, npix)
+    lon_c, lat_c = pixel_centres(nside, npix, rot=coord_rot)
 
     # Pixel boundaries
     print(f'Computing pixel boundaries (nside={nside}, npix={npix})...')
-    mx, my, wrap = pixel_boundaries(nside, npix, step=2)
+    mx, my, wrap = pixel_boundaries(nside, npix, step=2, rot=coord_rot)
     n_verts = mx.shape[1]
 
     # SVG polygons
@@ -469,7 +498,19 @@ def view(source, coord='G', cmap='plasma', title='',
   }} catch(e) {{ console.warn('Session restore failed:', e); }}
 }})();
 '''
-    js_str = js_str + '\n' + session_js
+    initial_mask_js = ''
+    if initial_masked:
+        initial_mask_js = f'''
+(function() {{
+  try {{
+    const initial = {json.dumps(initial_masked)};
+    for (const i of initial) pixelMasks[i] = true;
+    updateAllPolygons();
+    updateMaskTable();
+  }} catch(e) {{ console.warn('Initial mask init failed:', e); }}
+}})();
+'''
+    js_str = js_str + '\n' + initial_mask_js + '\n' + session_js
 
     # Array mask: load .npy or accept ndarray, then merge into pixelMasks.
     mask_js = ''
@@ -532,6 +573,7 @@ def view(source, coord='G', cmap='plasma', title='',
         ('%%VMIN%%', f'{vmin:.6g}'),
         ('%%VMAX%%', f'{vmax:.6g}'),
         ('%%FLUX_ENABLED%%', 'true' if mapmaker is not None else 'false'),
+        ('%%VAL_DECIMALS%%', str(int(decimals))),
     ]:
         html = html.replace(key, val)
 
