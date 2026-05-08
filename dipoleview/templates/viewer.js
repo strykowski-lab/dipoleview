@@ -19,6 +19,7 @@ const LUT = %%LUT%%;
 const ORIG_VMIN = %%VMIN%%;
 const ORIG_VMAX = %%VMAX%%;
 const FLUX_ENABLED = %%FLUX_ENABLED%%;
+const VAL_DECIMALS = %%VAL_DECIMALS%%;
 
 // Decode raw map values
 function b64ToFloat32(b64) {
@@ -526,7 +527,7 @@ function pixelVal(i) {
 function pixelValStr(i) {
   const v = pixelVal(i);
   if (!isFinite(v)) return 'nan';
-  return (showSmooth && smoothVals) ? v.toFixed(2) : String(Math.round(v));
+  return v.toFixed(VAL_DECIMALS);
 }
 
 function renderSelInfo() {
