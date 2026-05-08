@@ -26,22 +26,27 @@ pip install -e /path/to/dipoletools
 ## Quick start
 
 ```python
+import numpy as np
+from dipoleview import view
+
+count_map = np.load('my_map.npy')
+view(count_map, coord='G', title='My map')
+
+# Rotate from equatorial to galactic on the way in (matches healpy's
+# mollview(coord=[...]) convention). NaN / hp.UNSEEN pixels are
+# treated as initially masked.
+view(count_map, coord=['C', 'G'])
+```
+
+Or with a dipoletools `MapMaker` (enables live flux-cut controls):
+
+```python
 from dipoletools import MapMaker
 from dipoleview import view
 
 mm = MapMaker('racs-low1')
 mm.coords('C', 'G')       # convert to galactic
 view(mm)                  # coord auto-detected from MapMaker
-```
-
-Or with a plain count map:
-
-```python
-import numpy as np
-from dipoleview import view
-
-count_map = np.load('my_map.npy')
-view(count_map, coord='G', title='My map')
 ```
 
 ---
@@ -56,7 +61,7 @@ view(source, coord='G', cmap='plasma', title='',
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `source` | `MapMaker` or `array_like` | A dipoletools `MapMaker` object, or any ring-ordered HEALPix array. Passing a `MapMaker` enables live flux cuts and auto-detects the coordinate system. |
-| `coord` | `str` | Coordinate system: `'G'` (galactic), `'C'` (equatorial), `'E'` (ecliptic). Ignored when a `MapMaker` is passed (coordinate is read from `MapMaker.coords()`). Default `'G'`. |
+| `coord` | `str` or `list` | Coordinate system: `'G'` (galactic), `'C'` (equatorial), `'E'` (ecliptic). For a plain count map, a two-element list like `['C', 'G']` rotates the map from the input frame to the display frame (matching healpy's `mollview(coord=[...])` convention). Ignored when a `MapMaker` is passed (coordinate is read from `MapMaker.coords()`). Default `'G'`. |
 | `cmap` | `str` | Matplotlib colormap name. Default `'plasma'`. |
 | `title` | `str` | Label shown in the top-left of the map. |
 | `session` | `str` | Path to a `*_metadata.json` file saved by a previous session, to restore all masks on open. |

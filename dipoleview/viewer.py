@@ -300,8 +300,13 @@ def view(source, coord='G', cmap='plasma', title='',
     source : array_like or MapMaker
         A HEALPix count map (ring ordering), or a MapMaker instance.
         If a MapMaker is passed, flux cuts are enabled in the UI.
-    coord : str, optional
+        For a plain count map, NaN and ``hp.UNSEEN`` pixels are treated
+        as initially masked.
+    coord : str or list of str, optional
         Coordinate system: 'G' (galactic), 'C' (equatorial), 'E' (ecliptic).
+        For a plain count map, a two-element list like ``['C', 'G']``
+        rotates the map from the first frame to the second (matching
+        healpy's ``mollview(coord=[...])`` convention).
     cmap : str, optional
         Matplotlib colormap name. Default 'plasma'.
     title : str, optional
@@ -341,6 +346,24 @@ def view(source, coord='G', cmap='plasma', title='',
     m = healpix_map
     nside = hp.npix2nside(len(m))
     npix = len(m)
+
+    # For plain count maps: support coord=[in, out] rotation, and treat
+    # NaN / UNSEEN pixels as initially masked.
+    initial_masked = []
+    if mapmaker is None:
+        if isinstance(coord, (list, tuple)):
+            if len(coord) != 2:
+                raise ValueError("coord list must have exactly two elements, e.g. ['C', 'G']")
+            coord_in, coord_out = coord
+            if coord_in != coord_out:
+                rot = hp.Rotator(coord=[coord_in, coord_out])
+                m = rot.rotate_map_pixel(m)
+            coord = coord_out
+
+        bad = ~np.isfinite(m) | np.isclose(m, hp.UNSEEN)
+        if bad.any():
+            m = np.where(bad, np.nan, m)
+            initial_masked = np.flatnonzero(bad).tolist()
 
     if save_dir is None:
         save_dir = os.getcwd()
@@ -462,7 +485,19 @@ def view(source, coord='G', cmap='plasma', title='',
   }} catch(e) {{ console.warn('Session restore failed:', e); }}
 }})();
 '''
-    js_str = js_str + '\n' + session_js
+    initial_mask_js = ''
+    if initial_masked:
+        initial_mask_js = f'''
+(function() {{
+  try {{
+    const initial = {json.dumps(initial_masked)};
+    for (const i of initial) pixelMasks[i] = true;
+    updateAllPolygons();
+    updateMaskTable();
+  }} catch(e) {{ console.warn('Initial mask init failed:', e); }}
+}})();
+'''
+    js_str = js_str + '\n' + initial_mask_js + '\n' + session_js
 
     # Port placeholder — filled after server starts
     # We use a two-pass approach: build HTML with placeholder, start server,
