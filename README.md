@@ -150,6 +150,122 @@ A scrollable table of individually click-masked pixels with coordinates.  Each e
 - **Save session** writes a `*_metadata.json` and `*_mask.npy` to `save_dir`.
 - **Load session** restores all slice masks, disc masks, and individually masked pixels from a previously saved `*_metadata.json`.
 
+To publish a mask rather than reload it, convert the `*_metadata.json` to a readable
+YAML recipe — see [Portable masks](#portable-masks) below.
+
+---
+
+## Portable masks
+
+A saved session's `*_metadata.json` lists every masked pixel index, which makes it
+unreadable and ties the mask to one nside.  `json_to_yaml` boils it down to the
+recipe — the cuts, the discs, and any pixels masked by hand — as a YAML file that
+anyone can read, edit, cite, or rebuild at their own resolution.
+
+```python
+from dipoleview import json_to_yaml, yaml_to_mask
+
+json_to_yaml('racs-low3_20260420_184651_metadata.json', 'racs-low3.yaml')
+
+mask = yaml_to_mask('racs-low3.yaml')          # bool array: True = keep
+mask = yaml_to_mask('racs-low3.yaml', nside=256, coordinates='equatorial')
+```
+
+The YAML is the whole mask:
+
+```yaml
+coordinates: ANY
+nside: ANY
+ordering: ANY
+
+cuts:
+  - "|b|<5"
+  - "dec>48.9"
+
+discs:
+  - "l=309.5, b=19.4, r=4.1"
+  - "l=76.1, b=5.7, r=5.1"
+
+pixels: []
+```
+
+| Field | Meaning |
+|-------|---------|
+| `coordinates` | Frame the map is pixelised in: `galactic`, `equatorial` (`celestial`), `ecliptic`, or `ANY`. |
+| `nside` | HEALPix nside, or `ANY`. |
+| `ordering` | `RING` or `NESTED`, or `ANY`. |
+| `cuts` | Inequalities in `l`, `b`, `ra`, `dec`, `elon`, `elat` (or `lon`/`lat` for the pixelisation frame). Pixels **satisfying** a cut are masked out, so `\|b\|<5` removes the galactic plane. |
+| `discs` | `l=309.5, b=19.4, r=4.1` — centre and radius in degrees. Every pixel centre inside is masked out. |
+| `pixels` | Extra pixel indices masked by hand, i.e. ones no cut or disc accounts for. |
+
+Cuts and discs are written in whatever frame they were drawn in, and name that frame
+themselves, so `yaml_to_mask` converts them to the pixelisation frame for you — `|b|<5`
+removes the galactic plane whether you rebuild the mask in galactic, equatorial or
+ecliptic coordinates.
+
+That is why `coordinates`, `nside` and `ordering` are normally `ANY`: a mask made only
+of cuts and discs is a region of sky, not a set of pixels, so you can rebuild it however
+suits your analysis (defaults: `equatorial`, `nside=64`, `RING`).  The exception is
+`pixels`, whose raw indices only mean something for one particular pixelisation.  As
+soon as that list is non-empty the three fields are pinned to the values the mask was
+built at, and passing a conflicting argument raises `ValueError` rather than quietly
+returning the wrong sky.
+
+### Sending a mask to someone else
+
+`yaml_to_mask` lives in a single self-contained file with no dipoleview imports.  Send a
+collaborator the `.yaml` plus a copy of `dipoleview/yaml_to_mask.py`, and they can
+rebuild the mask with only `numpy`, `healpy`, `astropy` and `pyyaml` installed:
+
+```python
+from yaml_to_mask import yaml_to_mask
+mask = yaml_to_mask('racs-low3.yaml')
+```
+
+or straight from the command line:
+
+```bash
+python yaml_to_mask.py racs-low3.yaml -o racs-low3_mask.npy
+```
+
+### API
+
+```python
+json_to_yaml(json_path, yaml_path)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `json_path` | `str` | A `*_metadata.json` saved by the viewer. |
+| `yaml_path` | `str` | Where to write the `.yaml`. |
+
+Everything else — including which frame the map was pixelised in — is worked out from
+the session.  Cuts and discs are recomputed as it converts, so any pixel the recipe
+misses is written into `pixels` and the YAML reproduces the original mask.
+
+```python
+yaml_to_mask(path, coordinates=None, nside=None, ordering=None)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | `str` | The `.yaml` mask description. |
+| `coordinates` | `str` | `'galactic'`, `'equatorial'` (`'celestial'`), `'ecliptic'`. Only when the file says `ANY`. Default `'equatorial'`. |
+| `nside` | `int` | HEALPix nside. Only when the file says `ANY`. Default `64`. |
+| `ordering` | `str` | `'RING'` or `'NESTED'`. Only when the file says `ANY`. Default `'RING'`. |
+
+Returns a boolean array of length `12 * nside²`, `True` = keep and `False` = masked out,
+matching the convention of the viewer's `*_mask.npy` files.
+
+> **Note.** Sessions saved before August 2026 were built by a viewer that evaluated cuts
+> and discs against pixel coordinates rounded to two decimal places, so a pixel sitting
+> within ~0.005° (18 arcsec) of a cut or disc edge could be left on the wrong side of it.
+> The viewer now writes those coordinates at full precision, and rebuilt masks reproduce
+> a current session's `*_mask.npy` byte for byte.  Converting an older session, the
+> recipe may claim a handful of edge pixels the session missed — `json_to_yaml` prints a
+> note whenever that happens, and regenerating the session's `*_mask.npy` from the YAML
+> resolves it.
+
 ---
 
 ## Examples
@@ -160,6 +276,8 @@ A scrollable table of individually click-masked pixels with coordinates.  Each e
 | `examples/02_equatorial.py` | RACS-low1 via MapMaker, native equatorial coordinates |
 | `examples/03_countmap.py` | Plain numpy count map, no flux-cut controls |
 | `examples/04_session.py` | Restore a previously saved mask session |
+| `examples/05_array_mask.py` | Load a numpy boolean mask alongside the map |
+| `examples/06_yaml_mask.py` | Publish a mask as YAML and rebuild it at any nside/frame |
 
 ---
 

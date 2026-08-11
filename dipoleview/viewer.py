@@ -30,6 +30,18 @@ def _encode_map_values(m):
     return base64.b64encode(np.asarray(m, dtype=np.float32).tobytes()).decode()
 
 
+def _encode_coords(values):
+    """Build the JS array literal for a pixel coordinate array.
+
+    The browser evaluates slice and disc masks against these numbers, so
+    they are written at full precision: ``repr`` gives the shortest decimal
+    that parses back to exactly the same double, whereas a fixed number of
+    places quietly moves pixels across a cut or disc boundary. Rounding to
+    2 dp used to leave pixels up to 18 arcsec inside a cut unmasked.
+    """
+    return '[' + ','.join(repr(float(v)) for v in values) + ']'
+
+
 def _recolor(m, cmap_name, nan_color='#2a2a2a'):
     """Recompute hex colors and vmin/vmax for a map array."""
     import matplotlib.cm as mcm
@@ -438,8 +450,8 @@ def view(source, coord='G', cmap='plasma', title='', session=None, mask=None, sa
     )
 
     # Pixel data for JS
-    pix_lon_js = '[' + ','.join(f'{v:.2f}' for v in lon_c) + ']'
-    pix_lat_js = '[' + ','.join(f'{v:.2f}' for v in lat_c) + ']'
+    pix_lon_js = _encode_coords(lon_c)
+    pix_lat_js = _encode_coords(lat_c)
     pix_fill_js = '[' + ','.join(f'"{c}"' for c in hex_colors) + ']'
     map_values_b64 = _encode_map_values(m)
 
@@ -449,14 +461,14 @@ def view(source, coord='G', cmap='plasma', title='', session=None, mask=None, sa
 
     if coord == 'G':
         sky = SkyCoord(l=lon_c*u.deg, b=lat_c*u.deg, frame='galactic')
-        pix_ra_js = '[' + ','.join(f'{v:.2f}' for v in sky.icrs.ra.deg) + ']'
-        pix_dec_js = '[' + ','.join(f'{v:.2f}' for v in sky.icrs.dec.deg) + ']'
+        pix_ra_js = _encode_coords(sky.icrs.ra.deg)
+        pix_dec_js = _encode_coords(sky.icrs.dec.deg)
         pix_gl_js, pix_gb_js = pix_lon_js, pix_lat_js
     elif coord == 'C':
         sky = SkyCoord(ra=lon_c*u.deg, dec=lat_c*u.deg, frame='icrs')
         pix_ra_js, pix_dec_js = pix_lon_js, pix_lat_js
-        pix_gl_js = '[' + ','.join(f'{v:.2f}' for v in sky.galactic.l.deg) + ']'
-        pix_gb_js = '[' + ','.join(f'{v:.2f}' for v in sky.galactic.b.deg) + ']'
+        pix_gl_js = _encode_coords(sky.galactic.l.deg)
+        pix_gb_js = _encode_coords(sky.galactic.b.deg)
     else:
         pix_ra_js, pix_dec_js = pix_lon_js, pix_lat_js
         pix_gl_js, pix_gb_js = pix_lon_js, pix_lat_js
